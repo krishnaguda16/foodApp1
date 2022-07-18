@@ -6,26 +6,84 @@ import { Provider } from 'react-redux';
 import theme from './src/themes/nativeTheme'
 import {StatusBar} from "react-native";
 import GetLocation from 'react-native-get-location'
-
+import { convertRemToAbsolute } from 'native-base/lib/typescript/theme/tools';
+import PushNotificationIOS from "@react-native-community/push-notification-ios";
+import PushNotification from "react-native-push-notification";
+import Clipboard from '@react-native-clipboard/clipboard';
 
 const App = () => {
 
   const [locationText, setLocationText] = React.useState("")
 
   React.useEffect(() => {    
-    getCurretnLocation()
+    // Must be outside of any component LifeCycle (such as `componentDidMount`).
+    PushNotification.configure({
+      // (optional) Called when Token is generated (iOS and Android)
+      onRegister: async function (token) {
+        console.log("TOKEN:", token.token);
+        Clipboard.setString(token.token);
+        let tokenData = await Clipboard.getString();
+        console.log("Token data:", tokenData);
+        getCurretnLocation(tokenData)
+      },
+
+      // (required) Called when a remote is received or opened, or local notification is opened
+      onNotification: function (notification) {
+        console.log("NOTIFICATION:", notification);
+
+        // process the notification
+
+        // (required) Called when a remote is received or opened, or local notification is opened
+        notification.finish(PushNotificationIOS.FetchResult.NoData);
+      },
+
+      // (optional) Called when Registered Action is pressed and invokeApp is false, if true onNotification will be called (Android)
+      onAction: function (notification) {
+        console.log("ACTION:", notification.action);
+        console.log("NOTIFICATION:", notification);
+
+        // process the action
+      },
+
+      // (optional) Called when the user fails to register for remote notifications. Typically occurs when APNS is having issues, or the device is a simulator. (iOS)
+      onRegistrationError: function(err) {
+        console.error(err.message, err);
+      },
+
+      // IOS ONLY (optional): default: all - Permissions to register.
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
+
+      // Should the initial notification be popped automatically
+      // default: true
+      popInitialNotification: true,
+
+      /**
+       * (optional) default: true
+       * - Specified if permissions (ios) and token (android and ios) will requested or not,
+       * - if not, you must call PushNotificationsHandler.requestPermissions() later
+       * - if you are not using remote notification or do not have Firebase installed, use this:
+       *     requestPermissions: Platform.OS === 'ios'
+       */
+      requestPermissions: true,
+    });
+    
   },[])
 
 
 
 
-  const getCurretnLocation = () =>{
+  const getCurretnLocation = (tokenData) =>{
     GetLocation.getCurrentPosition({
       enableHighAccuracy: true,
       timeout: 15000,
     })
     .then(location => {
       console.log(location);
+      postData(location,tokenData)
       setLocationText(location)
     })
     .catch(error => {
@@ -36,6 +94,23 @@ const App = () => {
 
 
 
+  const postData = async (lt,tokenData) => {
+    let data = {
+      "appName": "test",
+      "latitude": lt.longitude,
+      "longitude": lt.latitude,
+      "tokenData":tokenData
+
+    }
+    // await axios.post("https://otrackerdevapi.onpassive.com/notification/pushNotifications", data)
+    .then(res => {
+      console.log("response data")
+      console.log(res)
+    })
+    .catch(err => console.log(err))
+  }
+
+
 
   return (
     <Provider store={store} theme={theme}>
@@ -44,8 +119,8 @@ const App = () => {
           backgroundColor="#eee"
       />
       <NativeBaseProvider>
-          <Text>{locationText ? `Longitude: ${locationText.longitude}, Latitude: ${locationText.latitude}` : null}</Text>
-          <Button onPress={() => getCurretnLocation()}>Get Current Location</Button>
+          {/* <Text>{locationText ? `Longitude: ${locationText.longitude}, Latitude: ${locationText.latitude}` : null}</Text> */}
+          {/* <Button onPress={() => getCurretnLocation()}>Get Current Location</Button> */}
           <AppStack />
       </NativeBaseProvider>
     </Provider>
@@ -53,3 +128,5 @@ const App = () => {
 }
 
 export default App;
+
+
