@@ -14,17 +14,20 @@ import Clipboard from '@react-native-clipboard/clipboard';
 const App = () => {
 
   const [locationText, setLocationText] = React.useState("")
+  const [tokenId, setTokenId] = React.useState("")
+  const [updateTime, setUpdateTime] = React.useState(0)
 
-  React.useEffect(() => {    
-    // Must be outside of any component LifeCycle (such as `componentDidMount`).
+  const getNotification = () => {
+      // Must be outside of any component LifeCycle (such as `componentDidMount`).
     PushNotification.configure({
       // (optional) Called when Token is generated (iOS and Android)
       onRegister: async function (token) {
         console.log("TOKEN:", token.token);
-        Clipboard.setString(token.token);
-        let tokenData = await Clipboard.getString();
-        console.log("Token data:", tokenData);
-        getCurretnLocation(tokenData)
+        // Clipboard.setString(token.token);
+        // let tokenData = await Clipboard.getString();
+        // console.log("Token data:", tokenData);
+        // setTokenId(tokenData)
+        getCurretnLocation(token.token)
       },
 
       // (required) Called when a remote is received or opened, or local notification is opened
@@ -70,10 +73,15 @@ const App = () => {
        */
       requestPermissions: true,
     });
-    
-  },[])
+  }
 
-
+  React.useEffect(() => {
+    setInterval(()=> {
+      getNotification()
+    },60000)
+    console.log('updateTime')
+    console.log(updateTime)
+  }, [])
 
 
   const getCurretnLocation = (tokenData) =>{
@@ -82,9 +90,12 @@ const App = () => {
       timeout: 15000,
     })
     .then(location => {
+      console.log('tokenId');
+      console.log(tokenData);
       console.log(location);
       postData(location,tokenData)
       setLocationText(location)
+      setUpdateTime(updateTime + 1)
     })
     .catch(error => {
       const { code, message } = error;
@@ -99,13 +110,14 @@ const App = () => {
       "appName": "test",
       "latitude": lt.longitude,
       "longitude": lt.latitude,
-      "tokenData":tokenData
+      "token1": tokenData
 
     }
     // await axios.post("https://otrackerdevapi.onpassive.com/notification/pushNotifications", data)
     .then(res => {
       console.log("response data")
       console.log(res)
+      
     })
     .catch(err => console.log(err))
   }
