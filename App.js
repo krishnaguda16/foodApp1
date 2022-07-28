@@ -32,6 +32,19 @@ const App = () => {
   );
 
   React.useEffect(() => {    
+    
+    GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+    })
+    .then(location => {
+      
+    })
+    .catch(error => {
+        const { code, message } = error;
+        console.warn(code, message);
+    })
+    
     PushNotification.configure({
       onRegister: async function (token) {
         console.log("TOKEN:", token.token);
